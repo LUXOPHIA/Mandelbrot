@@ -9,7 +9,9 @@ object Form1: TForm1
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
   OnCloseQuery = FormCloseQuery
+  OnDestroy = FormDestroy
   DesignerMasterStyle = 0
   object Image1: TImage
     MultiResBitmap = <
@@ -20,6 +22,15 @@ object Form1: TForm1
     Size.Width = 500.000000000000000000
     Size.Height = 500.000000000000000000
     Size.PlatformDefault = False
+    OnResize = Image1Resize
+    object ProgressBar1: TProgressBar
+      Align = Center
+      Orientation = Horizontal
+      Size.Width = 250.000000000000000000
+      Size.Height = 10.000000000000000000
+      Size.PlatformDefault = False
+      Visible = False
+    end
   end
   object LabelA: TLabel
     Position.X = 515.000000000000000000
@@ -39,13 +50,13 @@ object Form1: TForm1
       'E'
       'F'
       'G')
-    ItemIndex = 0
     Position.X = 560.000000000000000000
     Position.Y = 100.000000000000000000
     Size.Width = 70.000000000000000000
     Size.Height = 20.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
+    OnChange = PopupBoxAChange
   end
   object LabelN: TLabel
     Position.X = 515.000000000000000000
@@ -59,18 +70,18 @@ object Form1: TForm1
   object EditN: TEdit
     Touch.InteractiveGestures = [LongTap, DoubleTap]
     TabOrder = 3
-    Text = '500'
     Position.X = 560.000000000000000000
     Position.Y = 130.000000000000000000
     Size.Width = 70.000000000000000000
     Size.Height = 20.000000000000000000
     Size.PlatformDefault = False
+    OnValidate = EditNValidate
   end
   object GroupBoxR: TGroupBox
     Position.X = 520.000000000000000000
-    Position.Y = 160.000000000000000000
+    Position.Y = 260.000000000000000000
     Size.Width = 120.000000000000000000
-    Size.Height = 145.000000000000000000
+    Size.Height = 176.000000000000000000
     Size.PlatformDefault = False
     Text = #12524#12531#12480#12522#12531#12464
     TabOrder = 1
@@ -96,6 +107,24 @@ object Form1: TForm1
       Text = #20572#27490
       OnClick = ButtonBClick
     end
+    object LabelT: TLabel
+      Position.X = 5.000000000000000000
+      Position.Y = 145.000000000000000000
+      Size.Width = 86.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.HorzAlign = Trailing
+      TabOrder = 3
+    end
+    object LabelTu: TLabel
+      Position.X = 95.000000000000000000
+      Position.Y = 145.000000000000000000
+      Size.Width = 21.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'ms'
+      TabOrder = 2
+    end
   end
   object GroupBoxI: TGroupBox
     Position.X = 520.000000000000000000
@@ -108,12 +137,12 @@ object Form1: TForm1
     object EditW: TEdit
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       TabOrder = 1
-      Text = '500'
       Position.X = 40.000000000000000000
       Position.Y = 25.000000000000000000
       Size.Width = 70.000000000000000000
       Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
+      OnValidate = EditWValidate
     end
     object LabelW: TLabel
       Position.X = 5.000000000000000000
@@ -136,12 +165,49 @@ object Form1: TForm1
     object EditH: TEdit
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       TabOrder = 0
-      Text = '500'
       Position.X = 40.000000000000000000
       Position.Y = 50.000000000000000000
       Size.Width = 70.000000000000000000
       Size.Height = 20.000000000000000000
       Size.PlatformDefault = False
+      OnValidate = EditHValidate
+    end
+  end
+  object GroupBox1: TGroupBox
+    Position.X = 520.000000000000000000
+    Position.Y = 160.000000000000000000
+    Size.Width = 120.000000000000000000
+    Size.Height = 90.000000000000000000
+    Size.PlatformDefault = False
+    Text = #23455#35013#26041#27861
+    TabOrder = 8
+    object RadioButton1: TRadioButton
+      IsChecked = True
+      Position.X = 10.000000000000000000
+      Position.Y = 20.000000000000000000
+      Size.Width = 100.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Single'
+    end
+    object RadioButton2: TRadioButton
+      Position.X = 10.000000000000000000
+      Position.Y = 40.000000000000000000
+      Size.Width = 100.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Task'
+    end
+    object RadioButton3: TRadioButton
+      Position.X = 10.000000000000000000
+      Position.Y = 60.000000000000000000
+      Size.Width = 100.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Parallel'
     end
   end
 end
