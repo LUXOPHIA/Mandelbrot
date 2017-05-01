@@ -92,11 +92,12 @@ end;
 
 constructor TFractal.Create( const Fractal_:TFractal );
 begin
-     Create( Fractal_.SizeX, Fractal_.SizeY, Fractal_.Color );
+     inherited Create( Fractal_.SizeX, Fractal_.SizeY );
 
      _AreaC := Fractal_.AreaC;
      _IterN := Fractal_.IterN;
      _Diver := Fractal_.Diver;
+     _Color := Fractal_.Color;
 end;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【ルーチン】
