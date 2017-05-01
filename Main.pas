@@ -181,7 +181,7 @@ begin
                   if Sender_ <> EditASR then EditASR.Text := FloatToStrF( AreaC.SizeR, TFloatFormat.ffExponent, 7, 0 );
                   if Sender_ <> EditASI then EditASI.Text := FloatToStrF( AreaC.SizeI, TFloatFormat.ffExponent, 7, 0 );
 
-                  if Sender_ <> LabelRT then LabelRT.Text := Timer.TotalSeconds.ToString;
+                  if Sender_ <> LabelRT then LabelRT.Text := _Mande0.Timer.TotalSeconds.ToString;
 
                   ///// 有効
 
