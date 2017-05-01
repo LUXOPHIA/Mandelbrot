@@ -5,62 +5,72 @@ interface //####################################################################
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
-  System.Diagnostics, System.Threading,
+  System.Threading,
   FMX.StdCtrls, FMX.Edit, FMX.ExtCtrls, FMX.Controls.Presentation, FMX.Objects,
-  LIB, LIB.Complex;
+  LIB, LIB.Complex, LIB.Lattice.D1, LIB.Fractal.Mandelbrot;
 
 type
   TForm1 = class(TForm)
-    Image1: TImage;
-    ProgressBar1: TProgressBar;
-    GroupBoxI: TGroupBox;
-    LabelW: TLabel;
-    EditW: TEdit;
-    LabelH: TLabel;
-    EditH: TEdit;
-    LabelA: TLabel;
-    PopupBoxA: TPopupBox;
-    LabelN: TLabel;
-    EditN: TEdit;
-    GroupBox1: TGroupBox;
-    RadioButton1: TRadioButton;
-    RadioButton2: TRadioButton;
-    RadioButton3: TRadioButton;
-    GroupBoxR: TGroupBox;
-    ButtonP: TButton;
-    ButtonB: TButton;
-    LabelT: TLabel;
-    LabelTu: TLabel;
+    ImageV: TImage;
+    ImageC: TImage;
+    Panel1: TPanel;
+      GroupBoxI: TGroupBox;
+        GroupBoxIS: TGroupBox;
+          LabelISX: TLabel;
+            EditISX: TEdit;
+          LabelISY: TLabel;
+            EditISY: TEdit;
+      GroupBoxF: TGroupBox;
+        LabelFN: TLabel;
+          EditFN: TEdit;
+        LabelFD: TLabel;
+          EditFD: TEdit;
+      GroupBoxR: TGroupBox;
+        ButtonRP: TButton;
+        ButtonRB: TButton;
+        LabelRT: TLabel;
+          Label_RT: TLabel;
+      GroupBoxA: TGroupBox;
+        GroupBoxAC: TGroupBox;
+          LabelACR: TLabel;
+            EditACR: TEdit;
+          LabelACI: TLabel;
+            EditACI: TEdit;
+      GroupBoxAS: TGroupBox;
+        LabelASR: TLabel;
+          EditASR: TEdit;
+        LabelASI: TLabel;
+          EditASI: TEdit;
+    procedure Inputing( Sender_:TObject );
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormDestroy(Sender: TObject);
-    procedure Image1Resize(Sender: TObject);
-    procedure EditWValidate(Sender: TObject; var Text: string);
-    procedure EditHValidate(Sender: TObject; var Text: string);
-    procedure PopupBoxAChange(Sender: TObject);
-    procedure EditNValidate(Sender: TObject; var Text: string);
-    procedure ButtonPClick(Sender: TObject);
-    procedure ButtonBClick(Sender: TObject);
+    procedure ImageVPaint(Sender: TObject; Canvas: TCanvas; const ARect: TRectF);
+    procedure ImageVMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure ImageVMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
+    procedure ImageVMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure ButtonRPClick(Sender: TObject);
+    procedure ButtonRBClick(Sender: TObject);
   private
     { private 宣言 }
-    _Clock :TStopwatch;
-    _Image :TBitmapData;
-    _Task  :ITask;
-    ///// メソッド
-    function ScreenToComplex( const X_,Y_:Integer ) :TDoubleC;
-    function ComplexToColor( const C_:TDoubleC ) :TAlphaColorF;
+    _Mouse  :TShiftState;
+    _DragP0 :TPointF;
+    _DragP1 :TPointF;
+    _DragA  :TDoubleAreaC;
+    ///// アクセス
+    procedure SetDragA( const DragA_:TDoubleAreaC );
   public
     { public 宣言 }
-    _SizeW :Integer;
-    _SizeH :Integer;
-    _FuncN :Integer;
-    _AreaC :TDoubleAreaC;
+    _Color  :TColorMap1D;
+    _Mande0 :TMandelbrot;
+    _Mande1 :TMandelbrot;
+    ///// プロパティ
+    property DragA :TDoubleAreaC read _DragA write SetDragA;
     ///// メソッド
-    procedure BeginRender;
-    procedure EndRender;
-    procedure RenderS;
-    procedure RenderT;
-    procedure RenderP;
+    function ViewToComp( const V_:TPointF ) :TDoubleC;
+    function CompToView( const C_:TDoubleC ) :TPointF;
+    function RectToArea( const R_:TRectF ) :TDoubleAreaC;
+    function AreaToRect( const A_:TDoubleAreaC ) :TRectF;
   end;
 
 var
@@ -70,266 +80,259 @@ implementation //###############################################################
 
 {$R *.fmx}
 
+uses System.Math;
+
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
 
-/////////////////////////////////////////////////////////////////////// メソッド
+/////////////////////////////////////////////////////////////////////// アクセス
 
-function TForm1.ScreenToComplex( const X_,Y_:Integer ) :TDoubleC;
+procedure TForm1.SetDragA( const DragA_:TDoubleAreaC );
 begin
-     with _AreaC do
-     begin
-          Result.R := Min.R + SizeR / _SizeW * ( X_ + 0.5 );
-          Result.I := Max.I - SizeI / _SizeH * ( Y_ + 0.5 );
-     end;
-end;
-
-function TForm1.ComplexToColor( const C_:TDoubleC ) :TAlphaColorF;
-const
-     C0 :TAlphaColorF = ( R:0; G:0; B:0; A:1 );
-     C1 :TAlphaColorF = ( R:1; G:1; B:1; A:1 );
-var
-   Z :TDoubleC;
-   N :Integer;
-begin
-     Z := 0;
-
-     for N := 1 to _FuncN do
-     begin
-          Z := Pow2( Z ) + C_;
-
-          if Z.Abso > 2 then
-          begin
-               Result := ( C1 - C0 ) * N / _FuncN + C0;
-
-               Exit;
-          end;
-     end;
-
-     Result := C1;
+     _DragA := DragA_;  ImageV.Repaint;
 end;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
 
 /////////////////////////////////////////////////////////////////////// メソッド
 
-procedure TForm1.BeginRender;
+function TForm1.ViewToComp( const V_:TPointF ) :TDoubleC;
 begin
-     ButtonP.Enabled := False;
-     ButtonB.Enabled := True;
-
-     with Image1.Bitmap do
+     with _Mande0.AreaC do
      begin
-          SetSize( _SizeW, _SizeH );
-
-          Clear( TAlphaColors.Null );
-
-          Map( TMapAccess.Write, _Image );
+          Result.R := Min.R + V_.X / ImageV.Width  * SizeR;
+          Result.I := Max.I - V_.Y / ImageV.Height * SizeI;
      end;
-
-     with ProgressBar1 do
-     begin
-          Max     := _SizeH;
-          Value   := 0;
-          Visible := True;
-     end;
-
-     _Clock := TStopWatch.StartNew;
 end;
 
-procedure TForm1.EndRender;
+function TForm1.CompToView( const C_:TDoubleC ) :TPointF;
 begin
-     _Clock.Stop;
-
-     ProgressBar1.Visible := False;
-
-     _Task := nil;
-
-     with Image1.Bitmap do
+     with _Mande0.AreaC do
      begin
-          Unmap( _Image );
-
-          if ButtonB.Enabled then SaveToFile( 'Image.png' );
+          Result.X := ( C_ .R - Min.R ) / SizeR * ImageV.Width ;
+          Result.Y := ( Max.I - C_ .I ) / SizeI * ImageV.Height;
      end;
-
-     LabelT.Text := _Clock.Elapsed.TotalSeconds.ToString;
-
-     ButtonP.Enabled := True;
-     ButtonB.Enabled := False;
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TForm1.RenderS;
+function TForm1.RectToArea( const R_:TRectF ) :TDoubleAreaC;
 var
-   X, Y :Integer;
-   C :TDoubleC;
+   C0, C1 :TDoubleC;
 begin
-     BeginRender;
+     C0 := ViewToComp( R_.TopLeft     );
+     C1 := ViewToComp( R_.BottomRight );
 
-     for Y := 0 to _SizeH-1 do
-     begin
-          for X := 0 to _SizeW-1 do
-          begin
-               C := ScreenToComplex( X, Y );
-
-               _Image.Pixels[ X, Y ] := ComplexToColor( C ).ToAlphaColor;
-          end;
-
-          ProgressBar1.Value := Y;
-
-          Application.ProcessMessages;
-
-          if not ButtonB.Enabled then Break;
-     end;
-
-     EndRender;
+     Result := TDoubleAreaC.Create( C0.R, C1.I, C1.R, C0.I );
 end;
 
-procedure TForm1.RenderT;
+function TForm1.AreaToRect( const A_:TDoubleAreaC ) :TRectF;
+var
+   P0, P1 :TPointF;
 begin
-     _Task := TTask.Create(
-          procedure
-          var
-             Y, X :Integer;
-             C :TDoubleC;
-          begin
-               TThread.Synchronize( nil, BeginRender );
+     P0 := CompToView( A_.Min );
+     P1 := CompToView( A_.Max );
 
-               try
-                  for Y := 0 to _SizeH-1 do
-                  begin
-                       TTask.CurrentTask.CheckCanceled;
-
-                       for X := 0 to _SizeW-1 do
-                       begin
-                            C := ScreenToComplex( X, Y );
-
-                            _Image.Pixels[ X, Y ] := ComplexToColor( C ).ToAlphaColor;
-                       end;
-
-                       TThread.Synchronize( nil,
-                            procedure
-                            begin
-                                 ProgressBar1.Value := Y;
-                            end );
-                  end;
-
-               finally
-                      TThread.Synchronize( nil, EndRender );
-               end;
-          end );
-
-     _Task.Start;
-end;
-
-procedure TForm1.RenderP;
-begin
-     _Task := TTask.Run(
-          procedure
-          begin
-               TThread.Synchronize( nil, BeginRender );
-
-               TParallel.For( 0, _SizeH-1,
-                    procedure( Y:Integer; S:TParallel.TLoopState )
-                    var
-                       X :Integer;
-                       C :TDoubleC;
-                    begin
-                         if _Task.Status = TTaskStatus.Running then
-                         begin
-                              for X := 0 to _SizeW-1 do
-                              begin
-                                   C := ScreenToComplex( X, Y );
-
-                                   _Image.Pixels[ X, Y ] := ComplexToColor( C ).ToAlphaColor;
-                              end;
-
-                              TThread.Synchronize( nil,
-                                   procedure
-                                   begin
-                                        with ProgressBar1 do Value := Value + 1;
-                                   end );
-                         end
-                         else S.Stop;
-                    end );
-
-               TThread.Synchronize( nil, EndRender );
-          end );
+     Result := TRectF.Create( P0.X, P1.Y, P1.X, P0.Y );
 end;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TForm1.Inputing( Sender_:TObject );
 begin
-     EditW    .Text      := '500';
-     EditH    .Text      := '500';
-     PopupBoxA.ItemIndex :=    0 ;
-     EditN    .Text      := '500';
-end;
+     if TMonitor.TryEnter( Self ) then
+     begin
+          TMonitor.Enter( Self );
 
-procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-begin
-     CanClose := ButtonP.Enabled;
-end;
+          try
+             with _Mande1 do
+             begin
+                  ///// 入力
 
-procedure TForm1.FormDestroy(Sender: TObject);
-begin
-     /////
+                  if Sender_ = EditISX then SizeX       := EditISX.Text.ToInteger
+                                       else
+                  if Sender_ = EditISY then SizeY       := EditISY.Text.ToInteger
+                                       else
+                  if Sender_ = EditFN  then IterN       := EditFN .Text.ToInteger
+                                       else
+                  if Sender_ = EditFD  then Diver       := EditFD .Text.ToDouble
+                                       else
+                  if Sender_ = EditACR then AreaC.CentR := EditACR.Text.ToDouble
+                                       else
+                  if Sender_ = EditACI then AreaC.CentI := EditACI.Text.ToDouble
+                                       else
+                  if Sender_ = EditASR then AreaC.SizeR := EditASR.Text.ToDouble
+                                       else
+                  if Sender_ = EditASI then AreaC.SizeI := EditASI.Text.ToDouble
+                                       else
+                  if Sender_ = ImageV  then AreaC       := DragA;
+
+                  ///// 表示
+
+                  if Sender_ <> ImageV  then DragA := AreaC;
+
+                  if Sender_ <> EditISX then EditISX.Text := SizeX.ToString;
+                  if Sender_ <> EditISY then EditISY.Text := SizeY.ToString;
+
+                  if Sender_ <> EditFN  then EditFN .Text := IterN.ToString;
+                  if Sender_ <> EditFD  then EditFD .Text := Diver.ToString;
+
+                  if Sender_ <> EditACR then EditACR.Text := FloatToStrF( AreaC.CentR, TFloatFormat.ffExponent, 7, 0 );
+                  if Sender_ <> EditACI then EditACI.Text := FloatToStrF( AreaC.CentI, TFloatFormat.ffExponent, 7, 0 );
+                  if Sender_ <> EditASR then EditASR.Text := FloatToStrF( AreaC.SizeR, TFloatFormat.ffExponent, 7, 0 );
+                  if Sender_ <> EditASI then EditASI.Text := FloatToStrF( AreaC.SizeI, TFloatFormat.ffExponent, 7, 0 );
+
+                  if Sender_ <> LabelRT then LabelRT.Text := Timer.TotalSeconds.ToString;
+
+                  ///// 有効
+
+                  ImageV   .Enabled := not IsRun;
+
+                  GroupBoxI.Enabled := not IsRun;
+                  GroupBoxF.Enabled := not IsRun;
+                  GroupBoxA.Enabled := not IsRun;
+
+                  ButtonRP .Enabled := not IsRun;
+                  ButtonRB .Enabled :=     IsRun;
+             end;
+
+          except
+
+          end;
+
+          TMonitor.Exit( Self );
+     end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-procedure TForm1.Image1Resize(Sender: TObject);
+procedure TForm1.FormCreate(Sender: TObject);
 begin
-     ProgressBar1.Width := Image1.Width / 2;
+     ImageV.DisableInterpolation := True;
+     ImageC.DisableInterpolation := True;
+
+     _Mouse := [];
+
+     _Color := TColorMap1D.Create;
+
+     with _Color do
+     begin
+          LoadFromFile( '..\..\_DATA\Color.png' );
+          ExportTo( ImageC.Bitmap );
+     end;
+
+     _Mande0 := TMandelbrot.Create;
+     _Mande1 := TMandelbrot.Create( 512, 512, _Color );
+
+     Inputing( Sender );
+
+     ButtonRPClick( Sender );
 end;
 
-//------------------------------------------------------------------------------
-
-procedure TForm1.EditWValidate(Sender: TObject; var Text: string);
+procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-     if not TryStrToInt( Text, _SizeW ) then Text := _SizeW.ToString;
+     CanClose := not _Mande1.IsRun;
 end;
 
-procedure TForm1.EditHValidate(Sender: TObject; var Text: string);
+procedure TForm1.FormDestroy(Sender: TObject);
 begin
-     if not TryStrToInt( Text, _SizeH ) then Text := _SizeH.ToString;
+     _Mande0.DisposeOf;
+     _Mande1.DisposeOf;
+
+     _Color .DisposeOf;
 end;
 
-procedure TForm1.PopupBoxAChange(Sender: TObject);
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TForm1.ImageVPaint(Sender: TObject; Canvas: TCanvas; const ARect: TRectF);
 begin
-     case PopupBoxA.ItemIndex of
-       0: _AreaC := TDoubleAreaC.Create( -2.00000, -2.00000, +2.00000, +2.00000 );
-       1: _AreaC := TDoubleAreaC.Create( -0.97217, -0.25280, -0.96717, -0.24780 );
-       2: _AreaC := TDoubleAreaC.Create( +0.26220, -0.00250, +0.26270, -0.00200 );
-       3: _AreaC := TDoubleAreaC.Create( -1.25500, +0.02520, -1.25450, +0.02570 );
-       4: _AreaC := TDoubleAreaC.Create( -0.33800, -0.61500, -0.33700, -0.61400 );
-       5: _AreaC := TDoubleAreaC.Create( -1.25500, +0.02370, -1.25300, +0.02570 );
-       6: _AreaC := TDoubleAreaC.Create( +0.26000, -0.00300, +0.26200, -0.00100 );
+     with Canvas do
+     begin
+          with Stroke do
+          begin
+               Color := TAlphaColors.Gray;
+               Kind  := TBrushKind.Solid;
+               Dash  := TStrokeDash.Dash;
+          end;
+
+          DrawRect( AreaToRect( _DragA ), 0, 0, [], 1 );
      end;
 end;
 
-procedure TForm1.EditNValidate(Sender: TObject; var Text: string);
+//------------------------------------------------------------------------------
+
+procedure TForm1.ImageVMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
-     if not TryStrToInt( Text, _FuncN ) then Text := _FuncN.ToString;
+     _Mouse := Shift;
+
+     _DragP0 := TPointF.Create( X, Y );
+end;
+
+procedure TForm1.ImageVMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
+var
+   R :TRectF;
+   V :TPointF;
+begin
+     if ssLeft in _Mouse then
+     begin
+          _DragP1 := TPointF.Create( X, Y );
+
+          R := TRectF.Create( _DragP0 );
+
+          V := _DragP1 - _DragP0;
+
+          R.Inflate( Abs( V.X ), Abs( V.Y ) );
+
+          _DragA := RectToArea( R );
+
+          ImageV.Repaint;
+
+          Inputing( ImageV );
+     end;
+end;
+
+procedure TForm1.ImageVMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+     ImageVMouseMove( Sender, Shift, X, Y );
+
+     _Mouse := [];
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TForm1.ButtonPClick(Sender: TObject);
+procedure TForm1.ButtonRPClick(Sender: TObject);
 begin
-     if RadioButton1.IsChecked then RenderS
-                               else
-     if RadioButton2.IsChecked then RenderT
-                               else
-     if RadioButton3.IsChecked then RenderP;
+     with _Mande1 do
+     begin
+          OnBeginRender := procedure
+          begin
+               Inputing( nil );
+          end;
+
+          OnProgress := procedure
+          begin
+               ExportTo( ImageV.Bitmap );
+          end;
+
+          OnEndRender := procedure
+          begin
+               ExportTo( ImageV.Bitmap );
+
+               SaveToFile( 'Image.png' );
+
+               _Mande0.DisposeOf;
+               _Mande0 := _Mande1;
+               _Mande1 := TMandelbrot.Create( _Mande0 );
+
+               Inputing( nil );
+          end;
+
+          Render;
+     end;
 end;
 
-procedure TForm1.ButtonBClick(Sender: TObject);
+procedure TForm1.ButtonRBClick(Sender: TObject);
 begin
-     ButtonB.Enabled := False;
-
-     if Assigned( _Task ) then _Task.Cancel;
+     _Mande1.Cancel;
 end;
 
 end. //######################################################################### ■
